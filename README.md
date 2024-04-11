@@ -1,2 +1,2 @@
-# piezometrie
+# piezometry
 Multiple piezometers analysis

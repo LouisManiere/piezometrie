@@ -1,4 +1,6 @@
 data/
+work.py
+piezometry.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

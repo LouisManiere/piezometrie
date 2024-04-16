@@ -3,6 +3,8 @@ import glob
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.drawing.image import Image
+from openpyxl.chart import ScatterChart, Reference, Series
 
 # Define the path to the directory containing the CSV files
 # csv_dir = './data/bip/Piezometres'
@@ -21,21 +23,21 @@ dfs = {}
 
 # Iterate over each CSV file
 for csv_file in csv_files:
-    # Extract the folder name from the file path
-    folder_name = os.path.basename(os.path.dirname(csv_file))
-    
-    # Read the CSV file into a pandas DataFrame
-    df = pd.read_csv(csv_file, header=0)
-    df['date_time'] = pd.to_datetime(df['date_time'], format='%Y-%m-%d %H:%M:%S') # format date_time
-    df = df.sort_values(by='date_time')
-    
-    # Add the dataframe to the dictionary with the folder name as the key
-    dfs[folder_name] = df
+    if 'ZGraviere' not in csv_file:
+        # Extract the folder name from the file path
+        folder_name = os.path.basename(os.path.dirname(csv_file))
+        
+        # Read the CSV file into a pandas DataFrame
+        df = pd.read_csv(csv_file, header=0)
+        df['date_time'] = pd.to_datetime(df['date_time'], format='%Y-%m-%d %H:%M:%S') # format date_time
+        df = df.sort_values(by='date_time')
+        
+        # Add the dataframe to the dictionary with the folder name as the key
+        dfs[folder_name] = df
 
 # Iterate over each dataframe in dfs
 for key, df in dfs.items():
     if key != 'Baro':
-        print(key)
         # Merge the current dataframe with the "Baro" dataframe on the "date_time" column
         merged_df = df.merge(dfs['Baro'][['date_time', 'level_m']], on='date_time', suffixes=('', '_baro'))
         
@@ -69,14 +71,9 @@ for key, df in dfs.items():
                     start = manual_measures_df['date_time'].values[i-1]
                     end = merged_df['date_time'].max()
                 filter = (merged_df['date_time'] > start) & (merged_df['date_time'] <= end)
-            # print(i)
-            # print(start)
-            # print(end)
-            # print(elevation_NGF)
             merged_df.loc[filter, 'level_ngf_m'] = merged_df.loc[filter, 'level_corr_m'] + elevation_NGF
 
         # Update the original dataframe with the corrected values
-        # dfs[key] = merged_df
         dfs[key] = merged_df.drop(columns=['level_m_baro'])
 
 # Create a new workbook
@@ -90,6 +87,43 @@ for key, df in dfs.items():
     # Write the DataFrame to the worksheet
     for row in dataframe_to_rows(df, index=False, header=True):
         worksheet.append(row)
+
+    if key != 'Baro':
+        # Create a scatter chart
+        chart = ScatterChart()
+
+        # Set the title of the chart
+        chart.title = key + " Level NGF"
+        chart.style = 10
+        chart.x_axis.title = "Date Time"
+        chart.y_axis.title = "Level NGF"
+        chart.width = 27
+        chart.height = 10
+        # Rotate the x-axis labels by 30 degrees
+        # chart.x_axis.tickLblPos = "low"
+        # chart.x_axis.tickLblSkip = 0
+        chart.x_axis.tickLblRot = 30
+        chart.legend = None
+        
+        # Set the x-axis data range
+        x_values = Reference(worksheet, min_col=1, min_row=2, max_row=worksheet.max_row)
+        y_values = Reference(worksheet, min_col=5, min_row=1, max_row=worksheet.max_row)
+        
+        # Create a series for the chart
+        series = Series(y_values, xvalues=x_values, title_from_data=True)
+
+        # style the series
+        # Set the marker symbol to "none"
+        series.marker.symbol = "none"
+        # Set the line color to black and width to 1pt
+        series.graphicalProperties.line.solidFill = "000000"
+        series.graphicalProperties.line.width = 1
+
+        # Add the series to the chart
+        chart.series.append(series)
+
+        # Add the chart to the worksheet
+        worksheet.add_chart(chart, "H2")
 
 # Remove the default "Sheet" worksheet
 workbook.remove(workbook['Sheet'])

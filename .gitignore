@@ -1,6 +1,7 @@
 data/
 work.py
-piezometry.py
+work2.py
+piezometry.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

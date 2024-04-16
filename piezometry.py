@@ -99,10 +99,10 @@ for key, df in dfs.items():
         chart.y_axis.title = "Level NGF"
         chart.width = 27
         chart.height = 10
-        # Rotate the x-axis labels by 30 degrees
+        # Rotate the x-axis labels by 30 degrees (not working)
         # chart.x_axis.tickLblPos = "low"
         # chart.x_axis.tickLblSkip = 0
-        chart.x_axis.tickLblRot = 30
+        # chart.x_axis.tickLblRot = 30
         chart.legend = None
         
         # Set the x-axis data range

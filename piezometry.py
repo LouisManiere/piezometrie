@@ -6,6 +6,9 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.drawing.image import Image
 from openpyxl.chart import ScatterChart, Reference, Series
 
+# Diver sensor un UTC+1
+diver_utc_1 = ['A', 'B', 'C', 'D', 'E', 'H', 'I', 'J', 'K']
+
 # Define the path to the directory containing the CSV files
 # csv_dir = './data/bip/Piezometres'
 csv_dir = os.path.join('data', 'bip', 'Piezometres')
@@ -38,6 +41,11 @@ for csv_file in csv_files:
 # Iterate over each dataframe in dfs
 for key, df in dfs.items():
     if key != 'Baro':
+
+        # fix UTC+1 diver sensor to UTC
+        if key[0] in diver_utc_1:
+            df['date_time'] = df['date_time'] - pd.Timedelta(hours=1)
+
         # Merge the current dataframe with the "Baro" dataframe on the "date_time" column
         merged_df = df.merge(dfs['Baro'][['date_time', 'level_m']], on='date_time', suffixes=('', '_baro'))
         
@@ -124,6 +132,11 @@ for key, df in dfs.items():
 
         # Add the chart to the worksheet
         worksheet.add_chart(chart, "H2")
+
+# add manual measures to workbook
+manual_measures_worksheet = workbook.create_sheet(title='Manual Measures')
+for row in dataframe_to_rows(manual_measures, index=False, header=True):
+    manual_measures_worksheet.append(row)
 
 # Remove the default "Sheet" worksheet
 workbook.remove(workbook['Sheet'])

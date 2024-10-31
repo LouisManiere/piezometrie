@@ -14,7 +14,7 @@ diver_utc_1 = ['A', 'B', 'C', 'D', 'E', 'H', 'I', 'J', 'K']
 csv_dir = os.path.join('data', 'bip', 'Piezometres')
 
 # Get a list of all the _combine.csv files in the directory and its subdirectories
-csv_files = glob.glob(os.path.join(csv_dir, '**/*_combine.csv'), recursive=True)
+csv_files = glob.glob(os.path.join(csv_dir, '**/*_combine_corr.csv'), recursive=True)
 
 # get manual measures file
 csv_manual_measures = os.path.join(csv_dir, 'manual_measures.csv')
@@ -34,6 +34,33 @@ for csv_file in csv_files:
         df = pd.read_csv(csv_file, header=0)
         df['date_time'] = pd.to_datetime(df['date_time'], format='%Y-%m-%d %H:%M:%S') # format date_time
         df = df.sort_values(by='date_time')
+
+        ### remove first and last rows if 'level_m' is NaN
+
+        # Find the index of the first non-NaN row in 'level_m'
+        first_non_nan_idx = df['level_m'].first_valid_index()
+        # Slice the DataFrame to start from that index
+        df = df.loc[first_non_nan_idx:].reset_index(drop=True)
+
+        # Find the index of the last non-NaN row in 'level_m'
+        last_non_nan_idx = df['level_m'].last_valid_index()
+        # Slice the DataFrame to keep rows up to the last non-NaN value
+        df = df.loc[:last_non_nan_idx].reset_index(drop=True)
+
+        ### linear interpolation of NaN values with limit=5
+        df = df.interpolate(
+            limit=5,
+            inplace=False,
+            limit_direction='both',
+            limit_area='inside',
+        )
+
+        ### linear extrapolation of NaN values with limit=5 for temp_c
+        df['temp_c'] = df['temp_c'].interpolate(
+            inplace=False,
+            limit_direction='both',
+            limit_area='outside',
+        )
         
         # Add the dataframe to the dictionary with the folder name as the key
         dfs[folder_name] = df
